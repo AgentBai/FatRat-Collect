@@ -35,7 +35,7 @@ function frc_debugging(){
                     <input type="radio" name="debug_remove_head" value="3"> <span style="color: #db9925">强制转换(终方)</span>
                 </td>
             </tr>
-            <?php if (get_option(FRC_Validation::FRC_VALIDATION_RENDERING)) { ?>
+            <?php if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RENDERING)) { ?>
             <tr>
                 <th>采集方式:</th>
                 <td>

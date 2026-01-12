@@ -29,7 +29,7 @@ class FRC_Kit{
     }
 
     public function kit_auto_tags($postID){
-        $result = get_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS);
+        $result = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS);
         if ((defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) || empty($result) || @json_decode($result)->switch != 'open') {
             return;
         }
@@ -47,7 +47,7 @@ class FRC_Kit{
 
 
     public function kit_dynamic_fields($postID){
-        $result = get_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS);
+        $result = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS);
         if ((defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) || empty($result) || @json_decode($result)->switch != 'open') {
             return;
         }
@@ -112,10 +112,10 @@ function frc_auto_task($postID){
 }
 add_action('publish_post', 'frc_auto_task');
 
-$result = get_option(FRC_Validation::FRC_VALIDATION_INNER_CHAIN);
+$result = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_INNER_CHAIN);
 if ($result && @json_decode($result)->switch === 'open'){
     function frc_inner_chain( $post_content ) {
-        $config = json_decode(get_option(FRC_Validation::FRC_VALIDATION_INNER_CHAIN));
+        $config = json_decode(FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_INNER_CHAIN));
         $limit = isset($config->limit) ? $config->limit : 1;
 
         collect(get_tags( array('hide_empty' => false) ))->map(function ($tag) use (&$post_content, $limit){
@@ -136,14 +136,14 @@ if ($result && @json_decode($result)->switch === 'open'){
 }
 
 function frc_kit(){
-    $frc_validation_tags = get_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS);
-    $frc_validation_chain = get_option(FRC_Validation::FRC_VALIDATION_INNER_CHAIN);
-    $frc_validation_dynamic = get_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS);
-    $frc_validation_automatic_save_pic = get_option(FRC_Validation::FRC_VALIDATION_AUTOMATIC_SAVE_PIC);
-    $frc_validation_release_control = get_option(FRC_Validation::FRC_VALIDATION_RELEASE_CONTROL);
-    $frc_validation_insert_keyword = get_option(FRC_Validation::FRC_VALIDATION_INSERT_KEYWORD);
-    $frc_validation_wechat_history = get_option(FRC_Validation::FRC_VALIDATION_WECHAT_HISTORY);
-    $frc_validation_sponsorship = get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP);
+    $frc_validation_tags = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS);
+    $frc_validation_chain = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_INNER_CHAIN);
+    $frc_validation_dynamic = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS);
+    $frc_validation_automatic_save_pic = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_AUTOMATIC_SAVE_PIC);
+    $frc_validation_release_control = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RELEASE_CONTROL);
+    $frc_validation_insert_keyword = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_INSERT_KEYWORD);
+    $frc_validation_wechat_history = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_WECHAT_HISTORY);
+    $frc_validation_sponsorship = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP);
     $frc_wp_schedules = wp_get_schedules();
     array_multisort(array_column($frc_wp_schedules, 'interval'), SORT_ASC, $frc_wp_schedules);
     ?>
@@ -234,7 +234,7 @@ function frc_kit(){
                 <h6>设置完成之后, 自动采集, 自动发布. 时间很准</h6>
                 <?php
                 if (isset($_REQUEST['all_collect'])){
-                    $frc_validation_all_collect = get_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT);
+                    $frc_validation_all_collect = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT);
                     if ($frc_validation_all_collect === false) { ?>
                         <h5>全站采集</h5>
                         <input placeholder="请输入激活口令" name="all-collect"/>
@@ -250,7 +250,7 @@ function frc_kit(){
                     }
                 }
                 if (isset($_REQUEST['rendering'])){
-                    $frc_validation_rendering = get_option(FRC_Validation::FRC_VALIDATION_RENDERING);
+                    $frc_validation_rendering = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RENDERING);
                     if ($frc_validation_rendering === false) { ?>
                         <h5>动态渲染</h5>
                         <input placeholder="请输入激活口令" name="rendering"/>
@@ -455,7 +455,7 @@ function frc_kit(){
             <!--            赞助鼠-->
             <div class="tab-pane fade" id="activation">
                 <?php
-                if (get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP) === false) { ?>
+                if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP) === false) { ?>
                     <h5>赞助鼠</h5>
                     <p><a href="https://www.fatrat.cn/docs/v2/sponsorship" target="_blank">https://www.fatrat.cn/docs/v2/sponsorship</a></p>
                     <input placeholder="请输入激活口令" name="sponsorship"/>

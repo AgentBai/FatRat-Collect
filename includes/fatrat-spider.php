@@ -186,7 +186,7 @@ class FRC_Spider
             $page_count = explode('-', $history_page_number);
             $page_count = count($page_count) == 2 ? range($page_count[0], $page_count[1]) : [(int)$page_count[0]];
 
-            if (!get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP) && count($page_count) > 3){
+            if (!FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP) && count($page_count) > 3){
                 return ['code' => FRC_ApiError::FAIL, 'msg' => FRC_Validation::FRC_HINT_F];
             }
 
@@ -748,7 +748,7 @@ class FRC_Spider
         $data['link'] = $article['link'];
         $data['title'] = mb_substr($this->text_keyword_replace($article['title'], $option), 0, 120);
         $data['content'] = $this->text_keyword_replace($article['content'], $option);
-        $insertKeyword = get_option(FRC_Validation::FRC_VALIDATION_INSERT_KEYWORD);
+        $insertKeyword = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_INSERT_KEYWORD);
         if (!empty($insertKeyword) && json_decode($insertKeyword)->switch == 'open') {
             $data['content'] = $this->insertKeywords($data['content'], $option);
         }
@@ -846,7 +846,7 @@ class FRC_Spider
         ];
 
         /*
-        $frc_validation_sponsorship = get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP);
+        $frc_validation_sponsorship = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP);
         if ($frc_validation_sponsorship === 'sponsorship'){
             return [
                 'code' => $error,
@@ -929,7 +929,7 @@ function frc_spider()
     <div class="wrap">
         <h1 class="frc-plugin-name">
             <?php esc_html_e('胖鼠采集', 'Fat Rat Collect') ?>
-            <?php if (!empty(get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
+            <?php if (!empty(FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
                 <img width="20" src="<?php frc_image('fat-rat-nav-v-yellow.png') ?>" />
             <?php } ?>
             <img width="80" class="float-end" src="<?php frc_image('fat-rat-256x256.png') ?>">
@@ -973,7 +973,7 @@ function frc_spider()
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#list" type="button">列表采集</button>
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#historypage" type="button">列表分页采集</button>
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#details" type="button">详情采集</button>
-                <?php if (get_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)){ ?>
+                <?php if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)){ ?>
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#all" type="button">全站采集</button>
                 <?php } ?>
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#wechat_history" type="button">微信公众号历史文章采集<img width="25" src="<?php frc_image('new.png') ?>" /></button>
@@ -1093,7 +1093,7 @@ function frc_spider()
                         <td>
                             <input name="collect_history_page_number" size="82" placeholder="2-10" />
                             <p>页码用 - 隔开 例: 2-10 采集2->10页</p>
-                            <?php if (get_option(FRC_Validation::FRC_VALIDATION_RENDERING)){ ?>
+                            <?php if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RENDERING)){ ?>
                                 <p>动态渲染页面是向下翻页几次 例: 3 向下翻页三次, 翻页高度768px</p>
                             <?php } ?>
                         </td>

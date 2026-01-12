@@ -111,7 +111,7 @@ class TaskController extends WP_List_Table
 
             <div class="wrap">
                 <h1><?php esc_html_e( '任务中心', 'Fat Rat Collect' ) ?>
-                    <?php if (!empty(get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
+                    <?php if (!empty(FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
                         <img width="20" src="<?php frc_image('fat-rat-nav-v-yellow.png') ?>" />
                     <?php } ?>
                     <a href="<?php esc_attr_e(admin_url( 'admin.php?page=frc-tasks' )); ?>" class="page-title-action"><?php _e( '新建采集任务', 'Fat Rat Collect' ) ?></a>

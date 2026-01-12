@@ -157,7 +157,7 @@ class FRC_Options
      */
     public function interface_save_option(){
 
-        if (!get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP)){
+        if (!FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP)){
             if (count($this->options()) > 5){
                 return ['code' => FRC_ApiError::FAIL, 'msg' => FRC_Validation::FRC_HINT_Z];
             }
@@ -272,7 +272,7 @@ class FRC_Options
         }
 
         $msg = '保存完成.';
-        if (get_option(FRC_Validation::FRC_VALIDATION_RELEASE_CONTROL)){
+        if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RELEASE_CONTROL)){
             $params = [
                 'category' => frc_sanitize_array('release_category', 'integer'),
                 'user' => frc_sanitize_array('release_user', 'integer'),
@@ -841,7 +841,7 @@ class FRC_Configuration_List_Table extends WP_List_Table
 		);
 
 		// 全站采集（可选）
-		if (get_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)) {
+		if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)) {
 			$all_url = esc_url(add_query_arg('customvar', 'all')); // 转义 URL
 			$class = ('all' === $current ? ' class="current"' : '');
 			$views['all'] = sprintf(
@@ -882,7 +882,7 @@ function frc_options()
     ?>
     <div class="wrap">
         <h1><?php esc_html_e( '配置中心', 'Fat Rat Collect' ) ?>
-            <?php if (!empty(get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
+            <?php if (!empty(FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
                 <img width="20" src="<?php frc_image('fat-rat-nav-v-yellow.png') ?>" />
             <?php } ?>
             <a href="<?php esc_attr_e(admin_url( 'admin.php?page=frc-options-add-edit' )); ?>" class="page-title-action"><?php _e( '新建采集配置', 'Fat Rat Collect' ) ?></a>

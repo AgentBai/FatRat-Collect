@@ -760,7 +760,7 @@ function frc_data_detail()
         <h2>
             <img width="40" class="request—loading" src="<?php esc_attr_e(plugin_dir_url(dirname(__FILE__)) . 'images/fat-rat-128x128.png'); ?>"/>
             <?php esc_html_e(' 数据列表', 'Fat Rat Collect'); ?>
-            <?php if (!empty(get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
+            <?php if (!empty(FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
                 <img width="20" src="<?php frc_image('fat-rat-nav-v-yellow.png') ?>" />
             <?php } ?>
             <a href="<?php esc_attr_e(admin_url( 'admin.php?page=frc-data' )); ?>"><label class="label label-warning float-end">返回数据桶</label></a>

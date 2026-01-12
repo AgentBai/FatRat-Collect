@@ -124,13 +124,13 @@ function frc_plugin_update() {
             }
 
             $config = json_encode(['switch' => 'shutdown', 'created_at' => current_time('mysql'), 'updated_at' => current_time('mysql')]);
-            if (get_option(FRC_Validation::FRC_VALIDATION_FEATURED_PICTURE)){
+            if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_FEATURED_PICTURE)){
                 update_option(FRC_Validation::FRC_VALIDATION_FEATURED_PICTURE, $config);
             }
-            if (get_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS)){
+            if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS)){
                 update_option(FRC_Validation::FRC_VALIDATION_DYNAMIC_FIELDS, $config);
             }
-            if (get_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS)){
+            if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS)){
                 update_option(FRC_Validation::FRC_VALIDATION_AUTO_TAGS, $config);
             }
         }

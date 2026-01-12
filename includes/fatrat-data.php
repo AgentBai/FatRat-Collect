@@ -286,7 +286,7 @@ class FRC_Data_List_Table extends WP_List_Table
 		);
 
 		// 构建全站采集视图（如果启用）
-		if (get_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)) {
+		if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)) {
 			$all_url = esc_url(add_query_arg('customvar', 'all'));
 			$class = ('all' === $current) ? ' class="current"' : '';
 			$views['all'] = sprintf(
@@ -328,7 +328,7 @@ function frc_data_list()
     <div class="wrap">
         <h1>
             <?php esc_html_e('数据桶控制中心', 'Fat Rat Collect') ?>
-            <?php if (!empty(get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
+            <?php if (!empty(FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP))) { ?>
                 <img width="20" src="<?php frc_image('fat-rat-nav-v-yellow.png') ?>" />
             <?php } ?>
         </h1>

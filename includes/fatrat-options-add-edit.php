@@ -58,8 +58,8 @@ function frc_options_add_edit()
         }
     }
 
-    $frc_validation_sponsorship = get_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP);
-    $frc_validation_all_collect = get_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT);
+    $frc_validation_sponsorship = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_SPONSORSHIP);
+    $frc_validation_all_collect = FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT);
 
     ?>
 
@@ -110,7 +110,7 @@ function frc_options_add_edit()
                     <p>列表可直接写采集地址. 详情只写规则, 采集地址在使用的时候填写即可.</p>
                 </td>
             </tr>
-            <?php if (get_option(FRC_Validation::FRC_VALIDATION_RENDERING)) { ?>
+            <?php if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RENDERING)) { ?>
             <tr>
                 <th>采集方式:</th>
                 <td>

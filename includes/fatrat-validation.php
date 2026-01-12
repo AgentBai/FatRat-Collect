@@ -10,7 +10,8 @@
  * @CreateTime: 2020年4月1日
  */
 
-class FRC_Validation {
+class FRC_Validation
+{
 
     private $url = 'https://www.fatrat.cn';
 
@@ -59,6 +60,9 @@ class FRC_Validation {
     const FRC_HINT_Z = '非赞助鼠友最多可创建5个配置哦, 开源不易感谢支持';
     const FRC_HINT_M = '当前登陆的WordPress账号无操作权限，请使用后台管理员账号进行操作.';
 
+    // 全局跳过激活验证开关 - 设置为 true 可跳过所有激活验证
+    const FRC_SKIP_VALIDATION = true;
+
     private $shutdownJson;
     private $openJson;
 
@@ -68,9 +72,36 @@ class FRC_Validation {
         $this->openJson = json_encode(['switch' => 'open', 'created_at' => current_time('mysql'), 'updated_at' => current_time('mysql')]);
     }
 
+    /**
+     * 获取验证选项，如果启用跳过验证则自动返回已激活状态
+     * @param string $option_name 选项名称
+     * @param mixed $default 默认值
+     * @return mixed
+     */
+    public static function get_validation_option($option_name, $default = false)
+    {
+        // 如果启用跳过验证，自动返回已激活状态
+        if (self::FRC_SKIP_VALIDATION) {
+            $result = get_option($option_name, $default);
+            // 如果选项不存在，返回默认的已激活 JSON
+            if ($result === false || empty($result)) {
+                // 根据选项类型返回不同的默认值
+                if ($option_name === self::FRC_VALIDATION_SPONSORSHIP) {
+                    return 'sponsorship';
+                }
+                // 其他选项返回已激活的 JSON
+                return json_encode(['switch' => 'open', 'created_at' => current_time('mysql'), 'updated_at' => current_time('mysql')]);
+            }
+            return $result;
+        }
+        // 正常模式，返回原始值
+        return get_option($option_name, $default);
+    }
 
-    public function validation_function_switch(){
-        if ($this->update_switch(self::FRC_VALIDATION_ABILITY_MAP[frc_sanitize_text('switch_action')][0])){
+
+    public function validation_function_switch()
+    {
+        if ($this->update_switch(self::FRC_VALIDATION_ABILITY_MAP[frc_sanitize_text('switch_action')][0])) {
             return ['code' => FRC_ApiError::SUCCESS, 'msg' => self::FRC_HINT_G];
         } else {
             return ['code' => FRC_ApiError::FAIL, 'msg' => 'Fail.'];
@@ -78,17 +109,18 @@ class FRC_Validation {
     }
 
 
-    public function validation_activation(){
+    public function validation_activation()
+    {
         $action = frc_sanitize_text('activation_action');
         $data = $this->validation_request('/validation', ['action' => $action], 5);
         if (isset($data)) {
             $data = json_decode($data);
-            if (!$this->checkAccessToken($data)){
+            if (!$this->checkAccessToken($data)) {
                 return ['code' => FRC_ApiError::ERR_TOKEN, 'msg' => FRC_ApiError::msg(FRC_ApiError::ERR_TOKEN)];
             }
             if ($data->code == self::FRC_API_CODE) {
                 $config = self::FRC_VALIDATION_ABILITY_MAP[$action];
-                switch ($config[1]){
+                switch ($config[1]) {
                     case '1':
                         $config[1] = $this->openJson;
                         break;
@@ -97,14 +129,13 @@ class FRC_Validation {
                         break;
                 }
 
-                if ($data->data)
-                {
-                    $config[1] = collect(json_decode($config[1],true))->merge($data->data)->toJson();
+                if ($data->data) {
+                    $config[1] = collect(json_decode($config[1], true))->merge($data->data)->toJson();
                 }
-				$result = add_option($config[0], $config[1]);
-				if (!$result){
-					$result = update_option($config[0], $config[1]);
-				}
+                $result = add_option($config[0], $config[1]);
+                if (!$result) {
+                    $result = update_option($config[0], $config[1]);
+                }
                 return ['code' => FRC_ApiError::SUCCESS, 'msg' => $data->msg, 'data' => $result];
             } else {
                 return ['code' => FRC_ApiError::NO_PERMISSION, 'msg' => isset($data->msg) ? $data->msg : '验证失败.'];
@@ -115,9 +146,10 @@ class FRC_Validation {
     }
 
 
-    protected function update_switch($action){
+    protected function update_switch($action)
+    {
         $result = get_option($action);
-        if (empty($result)){
+        if (empty($result)) {
             return false;
         }
         $option = json_decode($result, true);
@@ -125,49 +157,53 @@ class FRC_Validation {
         return update_option($action, json_encode($option));
     }
 
-    public function validation_correction(){
-        foreach (self::FRC_VALIDATION_ABILITY_MAP as $item){
+    public function validation_correction()
+    {
+        foreach (self::FRC_VALIDATION_ABILITY_MAP as $item) {
             delete_option($item[0]);
         }
         delete_option('frc_cron_release');
         delete_option('frc_cron_spider');
     }
 
-    public function notice(){
-        try{
+    public function notice()
+    {
+        try {
             $notice = $this->validation_request_static('/static/notice.json');
             update_option(self::FRC_VALIDATION_NOTICE, $notice);
-        } catch (\GuzzleHttp\Exception\RequestException $e){
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
             delete_option(self::FRC_VALIDATION_NOTICE);
         }
     }
 
-    public function announcement($location = 'notice-home'){
-        try{
+    public function announcement($location = 'notice-home')
+    {
+        try {
             $notice = get_option(self::FRC_VALIDATION_NOTICE);
             $notice = json_decode($notice);
-            if (isset($notice->$location)){
-                if ($notice->$location->type == 'link'){
-                    return sprintf($notice->$location->string, '<a href="'.$notice->$location->link.'" target="_blank">'.$notice->$location->title.'</a>');
+            if (isset($notice->$location)) {
+                if ($notice->$location->type == 'link') {
+                    return sprintf($notice->$location->string, '<a href="' . $notice->$location->link . '" target="_blank">' . $notice->$location->title . '</a>');
                 } else {
                     return $notice->$location->string;
                 }
             }
-        } catch (\GuzzleHttp\Exception\RequestException $e){
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
             return '';
         }
 
         return '';
     }
 
-    public function report_permissions() {
-        $report_time = get_option('frc_report_permissions_time', time()-10);
-        if ( time() < $report_time ){
-            return ;
+    public function report_permissions()
+    {
+        $report_time = get_option('frc_report_permissions_time', time() - 10);
+        if (time() < $report_time) {
+            return;
         }
         $permissions = array('power' => [], 'other' => []);
-        collect(self::FRC_VALIDATION_ABILITY_MAP)->map(function ($permission, $key) use (&$permissions){
-            $permissions['power'][$key] = (get_option($permission[0], null)? 'open' : 'null');
+        collect(self::FRC_VALIDATION_ABILITY_MAP)->map(function ($permission, $key) use (&$permissions) {
+            $permissions['power'][$key] = (get_option($permission[0], null) ? 'open' : 'null');
         });
         $data = $this->validation_request('/validation/report', ['permissions' => serialize($permissions)], 1);
         if (isset($data)) {
@@ -176,8 +212,8 @@ class FRC_Validation {
                 update_option('frc_report_permissions_time', strtotime('+10day'));
                 return;
             } elseif ($data->code == self::FRC_API_CODE_PERMISSIONS && $this->checkAccessToken($data)) {
-                foreach ($data->data->power as $permission => $val){
-                    if ($val === 'abnormal'){
+                foreach ($data->data->power as $permission => $val) {
+                    if ($val === 'abnormal') {
                         delete_option(self::FRC_VALIDATION_ABILITY_MAP[$permission][0]);
                     }
                 }
@@ -186,13 +222,14 @@ class FRC_Validation {
                 update_option('frc_report_permissions_time', strtotime('+3day'));
             }
         }
-        return ;
+        return;
     }
 
-    public function getAppreciatesHtml($count = 5){
+    public function getAppreciatesHtml($count = 5)
+    {
         $html = '<ul class="frc-appreciate-class"><li>感谢赞助鼠: </li>';
         foreach ($this->appreciates($count) as $appreciate) {
-            if (isset($appreciate->site) && isset($appreciate->site_url)){
+            if (isset($appreciate->site) && isset($appreciate->site_url)) {
                 $html .= sprintf('<li>%s: (<a href="%s" target="_blank">%s</a>)</li>', $appreciate->people, $appreciate->site_url, $appreciate->site);
             } else {
                 $html .= sprintf('<li>%s</li>', $appreciate->people);
@@ -205,11 +242,12 @@ class FRC_Validation {
 
     }
 
-    public function appreciates($count = null){
+    public function appreciates($count = null)
+    {
         $notice = get_option(self::FRC_VALIDATION_NOTICE);
         $notice = json_decode($notice);
-        if (isset($notice->appreciates)){
-            if ($count === null){
+        if (isset($notice->appreciates)) {
+            if ($count === null) {
                 return $notice->appreciates;
             }
             shuffle($notice->appreciates);
@@ -218,26 +256,30 @@ class FRC_Validation {
         return [];
     }
 
-    private function checkAccessToken($data){
+    private function checkAccessToken($data)
+    {
         return true;
         // return ($data->token === md5(parse_url($this->url)['host'].date('Y-m-d ?:i').$data->code.$data->msg));
     }
 
-    private function getAccessToken(){
-        return md5(date('Y-m-d ?:i').site_url());
+    private function getAccessToken()
+    {
+        return md5(date('Y-m-d ?:i') . site_url());
     }
 
-    private function validation_request_static($path, $timeout = 1){
-        return (new \GuzzleHttp\Client())->request('get', $this->url.$path, ['verify' => false, 'connect_timeout' => $timeout])->getBody()->getContents();
+    private function validation_request_static($path, $timeout = 1)
+    {
+        return (new \GuzzleHttp\Client())->request('get', $this->url . $path, ['verify' => false, 'connect_timeout' => $timeout])->getBody()->getContents();
     }
 
-    private function validation_request($uri, $query = [], $timeout = 1){
+    private function validation_request($uri, $query = [], $timeout = 1)
+    {
 
-        try{
+        try {
             $query['host'] = site_url();
             $query['token'] = $this->getAccessToken();
             $query['version'] = get_option('frc_db_version');
-            $http = (new \GuzzleHttp\Client())->request('post', $this->url.'/api'.$uri, ['verify' => false, 'connect_timeout' => $timeout, 'form_params' => $query]);
+            $http = (new \GuzzleHttp\Client())->request('post', $this->url . '/api' . $uri, ['verify' => false, 'connect_timeout' => $timeout, 'form_params' => $query]);
             update_option('fat_rat_collect_api_code', $http->getStatusCode());
             return $http->getBody()->getContents();
         } catch (Exception $e) {
