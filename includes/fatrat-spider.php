@@ -588,7 +588,7 @@ class FRC_Spider
         $head = [
             'timeout' => 100
         ];
-        if ($option->cookie)
+        if (isset($option) && $option->cookie)
         {
             $head['headers'] = [
                 'Cookie'    => $option->cookie,
