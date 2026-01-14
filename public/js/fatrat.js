@@ -93,6 +93,20 @@
         }, '.spider-progress-bar', '.list-spider-run-button');
     });
 
+    // API请求采集
+    $('.api-spider-run-button').on('click', function(){
+        if(!confirm("API采集时间会久点, 请耐心等待...")){
+            return;
+        }
+
+        var option_id = $(this).attr('data-id');
+
+        ajax_collect_request_tool(request_url, {
+            action_func: 'api_request',
+            option_id: option_id,
+        }, '.spider-progress-bar', '.api-spider-run-button');
+    });
+
     $('.history-page-spider-run-button').on('click', function(){
         if(!confirm("请核实输入信息.")){
             return;
@@ -410,8 +424,16 @@
     /**
      * style
      */
-    if ($('input[type=radio][name=collect_type]:checked').val() == 'single'){
+    var currentType = $('input[type=radio][name=collect_type]:checked').val();
+    if (currentType == 'single'){
         $('.collect_type_radio_change').hide();
+        $('.collect_type_api_fields').hide();
+    } else if (currentType == 'api'){
+        $('.collect_type_radio_change').hide();
+        $('.collect_type_api_fields').show();
+    } else {
+        $('.collect_type_radio_change').show();
+        $('.collect_type_api_fields').hide();
     }
 
     $('#todo—more-button').on('click', function(){
@@ -428,11 +450,18 @@
     $('input[type=radio][name=collect_type]').change(function () {
         if (this.value == 'list') {
             $('.collect_type_radio_change').show();
+            $('.collect_type_api_fields').hide();
             console.log(1);
         }
         else if (this.value == 'single') {
             $('.collect_type_radio_change').hide();
+            $('.collect_type_api_fields').hide();
             console.log(2);
+        }
+        else if (this.value == 'api') {
+            $('.collect_type_radio_change').hide();
+            $('.collect_type_api_fields').show();
+            console.log(3);
         }
     });
 

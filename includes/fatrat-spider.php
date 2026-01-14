@@ -521,6 +521,228 @@ class FRC_Spider
 
 
     /**
+     * API请求采集
+     * @return array
+     */
+    public function grab_api_request()
+    {
+        $option_id = frc_sanitize_text('option_id', 0);
+
+        $options = new FRC_Options();
+        $option = $options->option($option_id);
+        if (!$option) {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => '未查询到配置, 配置ID错误'];
+        }
+
+        if ($option['collect_type'] != 'api') {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => '配置类型错误，请选择API采集配置'];
+        }
+
+        if (empty($option['collect_api_url'])) {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => 'API请求URL为空'];
+        }
+
+        if (empty($option['collect_api_response_fields'])) {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => '响应字段配置为空'];
+        }
+
+        // 解析响应字段配置
+        $response_fields = json_decode($option['collect_api_response_fields'], true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => '响应字段配置JSON格式错误: ' . json_last_error_msg()];
+        }
+
+        // 解析请求头
+        $headers = [];
+        if (!empty($option['collect_api_headers'])) {
+            $headers = json_decode($option['collect_api_headers'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return ['code' => FRC_ApiError::FAIL, 'msg' => '请求头JSON格式错误: ' . json_last_error_msg()];
+            }
+        }
+
+        // 解析请求体
+        $body = null;
+        if (!empty($option['collect_api_body'])) {
+            $body = json_decode($option['collect_api_body'], true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return ['code' => FRC_ApiError::FAIL, 'msg' => '请求体JSON格式错误: ' . json_last_error_msg()];
+            }
+        }
+
+        // 使用Guzzle发送HTTP请求
+        try {
+            $client = new \GuzzleHttp\Client([
+                'timeout' => 30.0,
+                'verify' => false, // 允许自签名证书
+            ]);
+
+            $requestOptions = [
+                'headers' => $headers ?: [],
+            ];
+
+            // 如果是POST/PUT/PATCH/DELETE请求，添加请求体
+            $method = strtoupper($option['collect_api_method'] ?: 'GET');
+            if (in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE']) && $body !== null) {
+                $requestOptions['json'] = $body;
+            }
+
+            $response = $client->request($method, $option['collect_api_url'], $requestOptions);
+            $responseBody = $response->getBody()->getContents();
+            $responseData = json_decode($responseBody, true);
+
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return ['code' => FRC_ApiError::FAIL, 'msg' => 'API响应不是有效的JSON格式: ' . json_last_error_msg()];
+            }
+
+            // 处理响应数据
+            $articles = [];
+            
+            // 检查响应数据是否为数组
+            if (!is_array($responseData)) {
+                return ['code' => FRC_ApiError::FAIL, 'msg' => 'API响应数据格式错误，期望数组或对象格式'];
+            }
+
+            // 提取字段
+            $items = $this->extractApiData($responseData, $response_fields);
+            
+            if (empty($items)) {
+                return ['code' => FRC_ApiError::SUCCESS, 'data' => [], 'msg' => '未找到符合条件的数据，请检查响应字段配置是否正确'];
+            }
+
+            // 处理每条数据
+            $successCount = 0;
+            $skipCount = 0;
+            foreach ($items as $index => $item) {
+                if (empty($item['title']) || empty($item['content'])) {
+                    $skipCount++;
+                    continue;
+                }
+
+                // 生成唯一链接（如果没有提供）
+                if (empty($item['link'])) {
+                    $item['link'] = $option['collect_api_url'] . '?id=' . md5($item['title'] . $index);
+                }
+
+                // 检查是否已存在
+                if ($this->checkPostLink($item['link'])) {
+                    $articles[] = $this->format($item, '已滤重');
+                    $skipCount++;
+                    continue;
+                }
+
+                // 插入文章
+                $result = $this->insert_article($item, $option);
+                $articles[] = $result;
+                $successCount++;
+            }
+
+            $msg = sprintf('API采集完成，成功采集 %d 条，跳过 %d 条', $successCount, $skipCount);
+            return $this->response(FRC_ApiError::SUCCESS, $articles, $msg);
+
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => 'API请求失败: ' . $e->getMessage()];
+        } catch (\Exception $e) {
+            return ['code' => FRC_ApiError::FAIL, 'msg' => '采集过程出错: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * 从API响应中提取数据
+     * @param array $data API响应数据
+     * @param array $fields 字段配置
+     * @return array
+     */
+    private function extractApiData($data, $fields)
+    {
+        $items = [];
+        
+        // 获取数据路径（支持数组）
+        $titlePath = $fields['title'] ?? '';
+        $contentPath = $fields['content'] ?? '';
+        $linkPath = $fields['link'] ?? '';
+        $coverPath = $fields['cover'] ?? '';
+
+        // 检查是否指定了数据列表路径（如 data.items）
+        $listPath = $fields['list_path'] ?? '';
+        
+        // 如果指定了列表路径，先获取列表数据
+        if (!empty($listPath)) {
+            $listData = $this->getNestedValue($data, $listPath);
+            if (is_array($listData) && !empty($listData)) {
+                $dataArray = $listData;
+            } else {
+                return []; // 列表路径无效
+            }
+        } else {
+            // 自动检测：如果响应是数组，遍历每个元素
+            if (isset($data[0]) || (isset($data['data']) && is_array($data['data']) && isset($data['data'][0]))) {
+                // 处理数组响应
+                $dataArray = isset($data['data']) ? $data['data'] : $data;
+            } else {
+                // 处理单个对象响应
+                $dataArray = [$data];
+            }
+        }
+        
+        // 遍历数据数组
+        foreach ($dataArray as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            
+            $extracted = [
+                'title' => $this->getNestedValue($item, $titlePath),
+                'content' => $this->getNestedValue($item, $contentPath),
+                'link' => $this->getNestedValue($item, $linkPath),
+                'cover' => $this->getNestedValue($item, $coverPath),
+            ];
+            
+            // 如果title或content为空，尝试从item中直接获取
+            if (empty($extracted['title']) && isset($item['title'])) {
+                $extracted['title'] = is_string($item['title']) ? $item['title'] : '';
+            }
+            if (empty($extracted['content']) && isset($item['content'])) {
+                $extracted['content'] = is_string($item['content']) ? $item['content'] : '';
+            }
+            
+            if (!empty($extracted['title']) && !empty($extracted['content'])) {
+                $items[] = $extracted;
+            }
+        }
+
+        return $items;
+    }
+
+    /**
+     * 根据路径获取嵌套值
+     * @param array $data 数据
+     * @param string $path 路径，如 "data.items.title" 或 "data[0].title"
+     * @return mixed
+     */
+    private function getNestedValue($data, $path)
+    {
+        if (empty($path)) {
+            return '';
+        }
+
+        // 处理数组索引，如 data[0] -> data.0
+        $path = preg_replace('/\[(\d+)\]/', '.$1', $path);
+        $keys = explode('.', $path);
+        
+        $value = $data;
+        foreach ($keys as $key) {
+            if (is_array($value) && isset($value[$key])) {
+                $value = $value[$key];
+            } else {
+                return '';
+            }
+        }
+
+        return is_string($value) ? $value : (is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : '');
+    }
+
+    /**
      * 定时爬虫
      * @return array
      */
@@ -973,6 +1195,7 @@ function frc_spider()
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#list" type="button">列表采集</button>
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#historypage" type="button">列表分页采集</button>
                 <button class="nav-link" data-bs-toggle="tab" data-bs-target="#details" type="button">详情采集</button>
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#api" type="button">API请求采集</button>
                 <?php if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_ALL_COLLECT)){ ?>
                     <button class="nav-link" data-bs-toggle="tab" data-bs-target="#all" type="button">全站采集</button>
                 <?php } ?>
@@ -1152,6 +1375,32 @@ function frc_spider()
                         <td colspan="2"><?php _e((new FRC_Validation())->getAppreciatesHtml(7)); ?></td>
                     </tr>
                 </table>
+                <?php } ?>
+            </div>
+            <!--API请求采集-->
+            <div class="tab-pane fade spider-tab-content" id="api">
+                <?php
+                if (!isset($options['api'])) {
+                    _e('<p></p>');
+                    _e("<h4><a href='". admin_url('admin.php?page=frc-options') ."'>亲爱的鼠友: 目前没有任何一个API采集配置。请先创建API采集配置 </a></h4>");
+                } else {
+                ?>
+                <ul class="list-group">
+                    <p></p>
+                    <a disabled class="list-group-item active">
+                        <h5 class="list-group-item-heading">
+                            API请求采集(点击采集)
+                        </h5>
+                    </a>
+                    <p></p>
+                    <?php
+                    foreach ($options['api'] as $option) {
+                        _e("<a href='javascript:;' data-id='{$option['id']}' class='api-spider-run-button list-group-item'>{$option['collect_name']}</a>");
+                    }
+                    ?>
+                    <p></p>
+                    <?php _e((new FRC_Validation())->getAppreciatesHtml(7)); ?>
+                </ul>
                 <?php } ?>
             </div>
             <!--全站采集-->

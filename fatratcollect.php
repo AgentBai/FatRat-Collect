@@ -107,6 +107,12 @@ function frc_plugin_update() {
         frcChangeColumn('MODIFY COLUMN `collect_list_rules` varchar(1000) not null default ""','option');
         frcChangeColumn('MODIFY COLUMN `collect_content_rules` varchar(1000) not null default ""','option');
         frcAddColumn('collect_cookie', 'varchar(5000) NOT NULL DEFAULT "" AFTER `collect_charset`', 'option');
+        // API采集相关字段
+        frcAddColumn('collect_api_url', 'varchar(500) NOT NULL DEFAULT "" AFTER `collect_list_url_paging`', 'option');
+        frcAddColumn('collect_api_method', 'varchar(10) NOT NULL DEFAULT "GET" AFTER `collect_api_url`', 'option');
+        frcAddColumn('collect_api_headers', 'text NOT NULL DEFAULT "" AFTER `collect_api_method`', 'option');
+        frcAddColumn('collect_api_body', 'text NOT NULL DEFAULT "" AFTER `collect_api_headers`', 'option');
+        frcAddColumn('collect_api_response_fields', 'text NOT NULL DEFAULT "" AFTER `collect_api_body`', 'option');
         if (!get_option('frc_mysql_upgrade')){
             $former_table_options = $wpdb->prefix . 'fr_options';
             $res = $wpdb->get_results("SHOW TABLES LIKE '%{$former_table_options}%'");

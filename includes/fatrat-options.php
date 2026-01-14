@@ -39,7 +39,7 @@ class FRC_Options
     {
         $sql = "SELECT * FROM $this->table_options";
 
-        if (in_array($customvar, array('list', 'single', 'all'))) {
+        if (in_array($customvar, array('list', 'single', 'all', 'api'))) {
             $sql = $this->wpdb->prepare("$sql where `collect_type` = '%s'", $customvar);
         }
 
@@ -122,7 +122,7 @@ class FRC_Options
     public function record_count(string $customvar = 'total')
     {
         $sql = "SELECT COUNT(*) FROM $this->table_options";
-        if (in_array($customvar, array('list', 'single', 'all', 'keyword'))) {
+        if (in_array($customvar, array('list', 'single', 'all', 'api', 'keyword'))) {
             $sql = $this->wpdb->prepare("$sql where collect_type = %s", $customvar);
         }
 
@@ -183,6 +183,12 @@ class FRC_Options
         $collect_custom_content_foot = frc_sanitize_textarea('collect_custom_content_foot');
         $collect_keywords_replace_rule = frc_sanitize_text('collect_keywords_replace_rule');
         $collect_keywords = frc_sanitize_textarea('collect_keywords', '');
+        // API采集相关字段
+        $collect_api_url = frc_sanitize_text('collect_api_url', '');
+        $collect_api_method = frc_sanitize_text('collect_api_method', 'GET');
+        $collect_api_headers = frc_sanitize_textarea('collect_api_headers', '');
+        $collect_api_body = frc_sanitize_textarea('collect_api_body', '');
+        $collect_api_response_fields = frc_sanitize_textarea('collect_api_response_fields', '');
 
         if ($collect_name == ''){
             return ['code' => FRC_ApiError::FAIL, 'msg' => '给你的配置写个名字吧, 着啥急'];
@@ -195,7 +201,41 @@ class FRC_Options
                 return ['code' => FRC_ApiError::FAIL, 'msg' => '列表采集范围/采集规则为空.'];
             }
         }
-        if (empty($collect_content_range) || empty($collect_content_rules)){
+        if ($collect_type == 'api'){
+            if (empty($collect_api_url)){
+                return ['code' => FRC_ApiError::FAIL, 'msg' => '请填写API请求URL.'];
+            }
+            if (empty($collect_api_response_fields)){
+                return ['code' => FRC_ApiError::FAIL, 'msg' => '请填写响应字段配置.'];
+            }
+            // 验证响应字段配置JSON格式
+            $response_fields = json_decode($collect_api_response_fields, true);
+            if (json_last_error() !== JSON_ERROR_NONE){
+                return ['code' => FRC_ApiError::FAIL, 'msg' => '响应字段配置JSON格式错误: ' . json_last_error_msg()];
+            }
+            // 验证必须包含title和content字段
+            if (!isset($response_fields['title']) || !isset($response_fields['content'])){
+                return ['code' => FRC_ApiError::FAIL, 'msg' => '响应字段配置必须包含title和content字段.'];
+            }
+            // 验证请求头JSON格式
+            if (!empty($collect_api_headers)){
+                $headers = json_decode($collect_api_headers, true);
+                if (json_last_error() !== JSON_ERROR_NONE){
+                    return ['code' => FRC_ApiError::FAIL, 'msg' => '请求头JSON格式错误: ' . json_last_error_msg()];
+                }
+                $collect_api_headers = json_encode($headers);
+            }
+            // 验证请求体JSON格式
+            if (!empty($collect_api_body)){
+                $body = json_decode($collect_api_body, true);
+                if (json_last_error() !== JSON_ERROR_NONE){
+                    return ['code' => FRC_ApiError::FAIL, 'msg' => '请求体JSON格式错误: ' . json_last_error_msg()];
+                }
+                $collect_api_body = json_encode($body);
+            }
+            $collect_api_response_fields = json_encode($response_fields);
+        }
+        if ($collect_type != 'api' && (empty($collect_content_range) || empty($collect_content_rules))){
             return ['code' => FRC_ApiError::FAIL, 'msg' => '详情采集范围/采集规则为空.'];
         }
 
@@ -225,6 +265,11 @@ class FRC_Options
             'collect_custom_content' => json_encode(['head' => $collect_custom_content_head, 'foot' => $collect_custom_content_foot]),
             'collect_keywords_replace_rule' => $collect_keywords_replace_rule,
             'collect_keywords' => $collect_keywords,
+            'collect_api_url' => $collect_api_url,
+            'collect_api_method' => $collect_api_method,
+            'collect_api_headers' => $collect_api_headers,
+            'collect_api_body' => $collect_api_body,
+            'collect_api_response_fields' => $collect_api_response_fields,
             'created_at' => current_time('mysql'),
             'updated_at' => current_time('mysql'),
         ];

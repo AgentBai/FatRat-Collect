@@ -100,6 +100,9 @@ function frc_options_add_edit()
                     <input type="radio" name="collect_type"
                            value="single" <?php esc_attr_e( isset($option) ? ($option['collect_type'] == 'single' ? 'checked' : '') : ''); ?> >
                     详情采集配置
+                    <input type="radio" name="collect_type"
+                           value="api" <?php esc_attr_e( isset($option) ? ($option['collect_type'] == 'api' ? 'checked' : '') : ''); ?> >
+                    API请求采集
                     <?php if ($frc_validation_all_collect){ ?>
                     <input type="radio" name="collect_type"
                            value="all" <?php esc_attr_e( isset($option) ? ($option['collect_type'] == 'all' ? 'checked' : '') : ''); ?> >
@@ -107,7 +110,7 @@ function frc_options_add_edit()
                     <p>全站采集: 采集范围处写全站正则, <a href="https://www.fatrat.cn/docs/v2/total-station-collect" target="_blank">参考</a></p>
                     <p>全站采集: 采集规则处不填</p>
                     <?php }?>
-                    <p>列表可直接写采集地址. 详情只写规则, 采集地址在使用的时候填写即可.</p>
+                    <p>列表可直接写采集地址. 详情只写规则, 采集地址在使用的时候填写即可. API请求采集: 通过HTTP请求获取JSON数据.</p>
                 </td>
             </tr>
             <?php if (FRC_Validation::get_validation_option(FRC_Validation::FRC_VALIDATION_RENDERING)) { ?>
@@ -272,6 +275,82 @@ function frc_options_add_edit()
                 <td>
                     <textarea name="collect_cookie" cols="80" rows="3" placeholder=""><?php if (!empty($option)){ esc_html_e($option['collect_cookie'], ''); } ?></textarea>
                     <p>不需要登陆就可采集的不用填写,cookie可能需要根据不同网站不同需要定时更新。</p>
+                </td>
+            </tr>
+            <!-- API采集配置 -->
+            <tr class="collect_type_api_fields" style="display: none;">
+                <th>API请求URL:</th>
+                <td>
+                    <input type="text" size="82"
+                           value="<?php frc_option_esc_attr_e($option, 'collect_api_url'); ?>"
+                           name="collect_api_url" placeholder="https://api.example.com/data"/>
+                    <p>API请求的完整URL地址</p>
+                </td>
+            </tr>
+            <tr class="collect_type_api_fields" style="display: none;">
+                <th>请求方式:</th>
+                <td>
+                    <select name="collect_api_method">
+                        <option value="GET" <?php esc_attr_e( isset($option) && $option['collect_api_method'] == 'GET' ? 'selected' : ''); ?>>GET</option>
+                        <option value="POST" <?php esc_attr_e( isset($option) && $option['collect_api_method'] == 'POST' ? 'selected' : ''); ?>>POST</option>
+                        <option value="PUT" <?php esc_attr_e( isset($option) && $option['collect_api_method'] == 'PUT' ? 'selected' : ''); ?>>PUT</option>
+                        <option value="PATCH" <?php esc_attr_e( isset($option) && $option['collect_api_method'] == 'PATCH' ? 'selected' : ''); ?>>PATCH</option>
+                        <option value="DELETE" <?php esc_attr_e( isset($option) && $option['collect_api_method'] == 'DELETE' ? 'selected' : ''); ?>>DELETE</option>
+                    </select>
+                    <p>HTTP请求方式</p>
+                </td>
+            </tr>
+            <tr class="collect_type_api_fields" style="display: none;">
+                <th>请求头 (JSON格式):</th>
+                <td>
+                    <textarea name="collect_api_headers" cols="80" rows="5" placeholder='{"Content-Type": "application/json", "Authorization": "Bearer token"}'><?php 
+                        if (!empty($option) && !empty($option['collect_api_headers'])){ 
+                            $headers = json_decode($option['collect_api_headers'], true);
+                            if ($headers) {
+                                esc_html_e(json_encode($headers, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                            } else {
+                                esc_html_e($option['collect_api_headers']);
+                            }
+                        } 
+                    ?></textarea>
+                    <p>请求头信息，JSON格式。例如: {"Content-Type": "application/json", "Authorization": "Bearer token"}</p>
+                </td>
+            </tr>
+            <tr class="collect_type_api_fields" style="display: none;">
+                <th>请求体 (JSON格式):</th>
+                <td>
+                    <textarea name="collect_api_body" cols="80" rows="5" placeholder='{"page": 1, "limit": 10}'><?php 
+                        if (!empty($option) && !empty($option['collect_api_body'])){ 
+                            $body = json_decode($option['collect_api_body'], true);
+                            if ($body) {
+                                esc_html_e(json_encode($body, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                            } else {
+                                esc_html_e($option['collect_api_body']);
+                            }
+                        } 
+                    ?></textarea>
+                    <p>请求体内容，JSON格式。GET请求通常不需要填写。例如: {"page": 1, "limit": 10}</p>
+                </td>
+            </tr>
+            <tr class="collect_type_api_fields" style="display: none;">
+                <th>响应字段配置 (JSON格式):</th>
+                <td>
+                    <textarea name="collect_api_response_fields" cols="80" rows="8" placeholder='{
+  "title": "data.title",
+  "content": "data.content",
+  "link": "data.url"
+}'><?php 
+                        if (!empty($option) && !empty($option['collect_api_response_fields'])){ 
+                            $fields = json_decode($option['collect_api_response_fields'], true);
+                            if ($fields) {
+                                esc_html_e(json_encode($fields, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+                            } else {
+                                esc_html_e($option['collect_api_response_fields']);
+                            }
+                        } 
+                    ?></textarea>
+                    <p>配置如何从API响应中提取字段。使用点号分隔的路径，例如: data.items[].title 表示从data.items数组中提取每个item的title字段。必须包含title和content字段。</p>
+                    <p>示例: {"title": "data.title", "content": "data.content", "link": "data.url"}</p>
                 </td>
             </tr>
             <tr>
