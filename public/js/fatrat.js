@@ -228,6 +228,12 @@
             collect_custom_content_foot: $('textarea[name="collect_custom_content_foot"]').val(),
             collect_keywords_replace_rule: $('textarea[name="collect_keywords_replace_rule"]').val(),
             collect_keywords: $('textarea[name="collect_keywords"]').val(),
+            // API采集相关字段
+            collect_api_url: $('input[name="collect_api_url"]').val() || '',
+            collect_api_method: $('select[name="collect_api_method"]').val() || 'GET',
+            collect_api_headers: $('textarea[name="collect_api_headers"]').val() || '',
+            collect_api_body: $('textarea[name="collect_api_body"]').val() || '',
+            collect_api_response_fields: $('textarea[name="collect_api_response_fields"]').val() || '',
         }
         ajax_option_request_tool(request_url, options, success_redirect_url);
     });
